@@ -11,8 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('phone_number')->after('role');
+        Schema::table('posts', function (Blueprint $table) {
+            $table->string('image', 100)->nullable();
+            $table->string('video', 100)->nullable();
         });
     }
 
@@ -21,8 +22,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            //
+        Schema::table('posts', function (Blueprint $table) {
+            $table->dropColumn('image');
+            $table->dropColumn('video');
         });
     }
 };

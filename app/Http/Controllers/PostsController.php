@@ -67,65 +67,62 @@ class PostsController extends Controller
 
     public function store(Request $request)
     {
-        $acceptHeader = $request->header("Accept");
-
-        // Authorization
+        // Pengecekan izin menggunakan Gate
         if (Gate::denies('create-post')) {
             return response()->json([
                 'success' => false,
                 'message' => 'You do not have permission to create post'
             ], 403);
         }
-        // End Authorization
 
-        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml'){
-            $contentTypeHeader = $request->header('Content-Type');
-
-            if ($contentTypeHeader === 'application/json'){
-                $input = $request->all(); //mengambil semua input dari user
-                $validationRules = [
-                    'title' => 'required|min:5',
-                    'author' => 'required|min:5',
-                    'category' => 'required|min:5',
-                    'status' => 'required|in:draft,published',
-                    'content' => 'required|min:5',
-                    'user_id' => 'required|exists:users,id'
-                ];
-                $validator = Validator::make($input, $validationRules); //membuat validasi inputan user
-
-                if ($validator->fails()){
-                    return response()->json($validator->errors(), 400); //mengembalikan pesan error jika inputan tidak sesuai
-                }
-
-                $post = Post::create($input); //membuat post baru
-                return response()->json($post, 200); //mengembalikan data post baru dalam bentuk json
-            }
-            elseif ($contentTypeHeader === 'application/xml'){
-                $xmldata = $request->getContent(); //mengambil data xml
-                $xml = simplexml_load_string($xmldata); //mengubah string xml menjadi object
-
-                if ($xml === false){
-                    return response('Bad Request', 400);
-                }else{
-                    $post = Post::create([
-                        'title' => $xml->title,
-                        'author' => $xml->author,
-                        'category' => $xml->category,
-                        'status' => $xml->status,
-                        'content' => $xml->content,
-                        'user_id' => $xml->user_id
-                    ]);
-                    
-                    if ($post->save()){
-                        return $xml -> asXML();
-                    }else{
-                        return response('Internal Server Error', 500);
-                    }
-                }
-            }
-        }else{
-            return response('Not Acceptable!', 406);
+        $validator = Validator::make($request->all(), [
+            'title' => 'required|string|max:255',
+            'author' => 'required|string|max:255',
+            'category' => 'required|string|max:255',
+            'status' => 'required|string|max:255',
+            'content' => 'required|string',
+            'user_id' => 'required|integer',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Jika ingin memerlukan gambar, tambahkan required
+            'video' => 'nullable|mimes:mp4,mov,ogg,qt|max:20480', // Jika ingin memerlukan video, tambahkan required
+        ]);
+    
+        // Cek jika validasi gagal
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()
+            ], 422);
         }
+
+        // Mengambil data dari request
+        $data = $request->only(['title', 'author', 'category', 'status', 'content', 'user_id']);
+
+        // Upload dan simpan gambar jika ada
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imageName = 'post_' . time() . '.' . $image->getClientOriginalExtension();
+            $image->move(storage_path('uploads/image_post'), $imageName);
+            $data['image'] = $imageName;
+        }
+        
+
+        // Upload dan simpan video jika ada
+        if ($request->hasFile('video')) {
+            $videoPath = $request->file('video');
+            $videoName = 'post_' . time() . '.' . $videoPath->getClientOriginalExtension();
+            $videoPath->move(storage_path('uploads/video_post'), $videoName);
+            $data['video'] = $videoName;
+        }
+
+        // Buat dan simpan post
+        $post = Post::create($data);
+
+        // Redirect atau response sesuai kebutuhan aplikasi
+        return response()->json([
+            'success' => true,
+            'message' => 'Post successfully created',
+            'data' => $post
+        ], 201);
     }
 
     public function show(Request $request,$id)
@@ -177,81 +174,82 @@ class PostsController extends Controller
 
     public function update(Request $request, $id)
     {
-        $acceptHeader = $request->header("Accept");
-        if ($acceptHeader==="application/json" || $acceptHeader==="application/xml"){
-            $contentTypeHeader = $request->header("Content-Type");
-            
-            if ($contentTypeHeader === "application/json"){
-                // JSON
-                $input = $request->all(); //mengambil semua input dari user
-                $post = Post::find($id); //mencari post berdasarkan id
-                
-                if (!$post) {
-                    abort(404);
-                }
+        // Pengecekan izin menggunakan Gate
+        if (Gate::denies('update-post')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to update post'
+            ], 403);
+        }
 
-                // Authorization
-                if (Gate::denies('update-post', $post)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'You do not have permission to update post'
-                    ], 403);
-                }
-                // End Authorization
-                
-                // Validating input
-                $validationRules = [
-                    'title' => 'required|min:5',
-                    'author' => 'required|min:5',
-                    'category' => 'required|min:5',
-                    'status' => 'required|in:draft,published',
-                    'content' => 'required|min:5',
-                    'user_id' => 'required|exists:users,id'
-                ];
-                $validator = Validator::make($input, $validationRules); //membuat validasi inputan user
+        $validator = Validator::make($request->all(), [
+            'title' => 'required|string|max:255',
+            'author' => 'required|string|max:255',
+            'category' => 'required|string|max:255',
+            'status' => 'required|string|max:255',
+            'content' => 'required|string',
+            'user_id' => 'required|integer',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'video' => 'nullable|mimes:mp4,mov,ogg,qt|max:20480',
+        ]);
 
-                if ($validator->fails()){
-                    return response()->json($validator->errors(), 400); //mengembalikan pesan error jika inputan tidak sesuai
-                }
-                
-                $post->fill($input); //mengisi post dengan data baru dari input
-                $post->save(); //menyimpan post ke database
+        // Cek jika validasi gagal
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()
+            ], 422);
+        }
 
-                return response()->json($post, 200); //mengembalikan data post yang baru diupdate dalam bentuk json
-            }elseif ($contentTypeHeader === "application/xml"){
-                // XML
-                $xmldata = $request->getContent(); //mengambil data xml
-                $xml = simplexml_load_string($xmldata); //mengubah string xml menjadi object
+        // Cari post berdasarkan ID
+        $post = Post::find($id);
 
-                if ($xml === false){
-                    return response('Bad Request', 400);
-                }else{
-                    $post = Post::find($id); //mencari post berdasarkan id
+        // Jika post tidak ditemukan
+        if (!$post) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Post not found'
+            ], 404);
+        }
 
-                    if (!$post) {
-                        return response('Post not found', 404);
-                    }else{
-                        $input = [
-                            'title' => $xml->title,
-                            'author' => $xml->author,
-                            'category' => $xml->category,
-                            'status' => $xml->status,
-                            'content' => $xml->content,
-                            'user_id' => $xml->user_id
-                        ];
-                        $post->fill($input);
-                        if ($post->save()){
-                            return $xml -> asXML();
-                        }else{
-                            return response('Internal Server Error', 500);
-                        }
-                    }
-                }
-            }else{
-                return response('Not Acceptable!', 406);
+        // Menghapus foto lama jika ada
+        if ($post->image) {
+            // Hapus foto lama dari penyimpanan
+            $oldImagePath = storage_path("uploads/image_post/{$post->image}");
+            if (file_exists($oldImagePath)) {
+                unlink($oldImagePath);
             }
         }
+
+        // Mengambil data dari request
+        $data = $request->only(['title', 'author', 'category', 'status', 'content', 'user_id']);
+
+        // Upload dan simpan foto baru jika ada
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imageName = 'post_' . time() . '.' . $image->getClientOriginalExtension();
+            $image->move(storage_path('uploads/image_post'), $imageName);
+            $data['image'] = $imageName;
+        }
+
+        // Upload dan simpan video baru jika ada
+        if ($request->hasFile('video')) {
+            $video = $request->file('video');
+            $videoName = 'post_' . time() . '.' . $video->getClientOriginalExtension();
+            $video->move(storage_path('uploads/video_post'), $videoName);
+            $data['video'] = $videoName;
+        }
+
+        // Update post dengan data baru
+        $post->update($data);
+
+        // Redirect atau response sesuai kebutuhan aplikasi
+        return response()->json([
+            'success' => true,
+            'message' => 'Post successfully updated'
+        ]);
     }
+
 
     public function destroy(Request $request,$id)
     {
@@ -300,5 +298,28 @@ class PostsController extends Controller
         }else{
             return response('Not Acceptable!', 406);
         }   
+    }
+
+    public function image($imageName)
+    {
+        $imagePath = storage_path('uploads/image_post') . '/' . $imageName . '.jpg' ?? storage_path('uploads/image_post') . '/' . $imageName . '.jpg' ?? storage_path('uploads/image_post') . '/' . $imageName . '.jpeg';
+        
+        if (!file_exists($imagePath)) {
+            return response()->json(['message' => 'Image not found'], 404);
+        } 
+        $file = file_get_contents($imagePath);
+        
+        return response($file, 200)->header('Content-Type', 'image/png' ?? 'image/jpeg' ?? 'image/jpg');
+    }
+
+    public function video($videoName)  
+    {
+        $videoPath = storage_path('uploads/video_post') . '/' . $videoName . '.mp4' ?? storage_path('uploads/video_post') . '/' . $videoName . '.mov' ?? storage_path('uploads/video_post') . '/' . $videoName . '.ogg';
+        if (!file_exists($videoPath)) {
+            return response()->json(['message' => 'Video not found'], 404);
+        } 
+        $file = file_get_contents($videoPath);
+        
+        return response($file, 200)->header('Content-Type', 'video/mp4' ?? 'video/mov' ?? 'video/ogg');
     }
 }
