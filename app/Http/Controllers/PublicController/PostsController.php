@@ -29,4 +29,27 @@ class PostsController extends Controller{
             'data' => $post
         ]);
     }
+
+    public function image($imageName)
+    {
+        $imagePath = storage_path('uploads/image_post') . '/' . $imageName . '.jpg' ?? storage_path('uploads/image_post') . '/' . $imageName . '.jpg' ?? storage_path('uploads/image_post') . '/' . $imageName . '.jpeg';
+        
+        if (!file_exists($imagePath)) {
+            return response()->json(['message' => 'Image not found'], 404);
+        } 
+        $file = file_get_contents($imagePath);
+        
+        return response($file, 200)->header('Content-Type', 'image/png' ?? 'image/jpeg' ?? 'image/jpg');
+    }
+
+    public function video($videoName)  
+    {
+        $videoPath = storage_path('uploads/video_post') . '/' . $videoName . '.mp4' ?? storage_path('uploads/video_post') . '/' . $videoName . '.mov' ?? storage_path('uploads/video_post') . '/' . $videoName . '.ogg';
+        if (!file_exists($videoPath)) {
+            return response()->json(['message' => 'Video not found'], 404);
+        } 
+        $file = file_get_contents($videoPath);
+        
+        return response($file, 200)->header('Content-Type', 'video/mp4' ?? 'video/mov' ?? 'video/ogg');
+    }
 }

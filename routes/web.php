@@ -21,8 +21,6 @@ $router->get('/home', 'HomeController@index');
 $router->get('/about', 'AboutController@about');
 $router->get('/dashboard', 'DashboardController@index');
 
-// 5 Route dari 5 Migrations (Tugas 4)
-
 $router->get('/users', 'UsersController@index');
 $router->get('/users/{user_id}', 'UsersController@show');
 $router->post('/users', 'UsersController@store');
@@ -42,7 +40,6 @@ $router->put('/orders/{id}', 'OrdersController@update');
 $router->delete('/orders/{id}', 'OrdersController@destroy');
 
 $router->get('/categories', 'CategoriesController@index');
-
 $router->get('/tags', 'TagsController@index');
 
 $router->group(['prefix' => 'auth'],function() use ($router){
@@ -50,17 +47,15 @@ $router->group(['prefix' => 'auth'],function() use ($router){
     $router->post('/login', 'AuthController@login');
 });
 
+$router->get('/posts', 'PostsController@index');
 $router->group(['middleware' => ['auth']], function ($router) {
-    $router->get('/posts', 'PostsController@index');
     $router->get('/posts/{id}', 'PostsController@show');
     $router->post('/posts', 'PostsController@store');
     $router->put('/posts/{id}', 'PostsController@update');
     $router->delete('/posts/{id}', 'PostsController@destroy');
     $router->get('/posts/image/{imageName}', 'PostsController@image');
     $router->get('/posts/video/{videoName}', 'PostsController@video');
-});
 
-$router->group(['middleware'=> ['auth']], function ($router) {
     $router->get('/products', 'ProductsController@index');
     $router->get('/products/{id}', 'ProductsController@show');
     $router->post('/products', 'ProductsController@store');
@@ -72,7 +67,8 @@ $router->group(['middleware'=> ['auth']], function ($router) {
 
 $router->get('/public/posts', 'PublicController\PostsController@index');
 $router->get('/public/posts/{id}', 'PublicController\PostsController@show');
+$router->get('/public/posts/image/{imageName}', 'PublicController\PostsController@image');
+$router->get('/public/posts/video/{videoName}', 'PublicController\PostsController@video');
 
 $router->get('/profiles/{id}', 'ProfileController@show');
-
 $router->get('/profiles/image/{imageName}', 'ProfileController@image');

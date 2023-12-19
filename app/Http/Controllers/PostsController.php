@@ -227,7 +227,7 @@ class PostsController extends Controller
         // Upload dan simpan foto baru jika ada
         if ($request->hasFile('image')) {
             $image = $request->file('image');
-            $imageName = 'post_' . time() . '.' . $image->getClientOriginalExtension();
+            $imageName = 'post_' . time() . '.' . $image;
             $image->move(storage_path('uploads/image_post'), $imageName);
             $data['image'] = $imageName;
         }
@@ -235,7 +235,7 @@ class PostsController extends Controller
         // Upload dan simpan video baru jika ada
         if ($request->hasFile('video')) {
             $video = $request->file('video');
-            $videoName = 'post_' . time() . '.' . $video->getClientOriginalExtension();
+            $videoName = 'post_' . time() . '.' . $video;
             $video->move(storage_path('uploads/video_post'), $videoName);
             $data['video'] = $videoName;
         }
